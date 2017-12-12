@@ -3,3 +3,26 @@ The idea is simply convert a numpy calculation to a tensorflow calculation, in t
 Some issues, there're some calculation that doesnt work well in terms of the definition of 2 libraries. Two tricky way is applied to translate the code.
 1. simply replace the function name to equivalent functions
 2. using some wrap library to handle this.
+
+e.g.
+`
+import numpy as np
+
+a = np.arange(6)
+a = (a + 100) * a
+`
+
+will be translated into
+`
+import tensorflow as tf
+a = tf.range(6)
+a = ((a + 100) * a)
+
+logDir = "/home/eric/test"
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
+sess.run(a)
+writer = tf.summary.FileWriter(logDir, sess.graph)
+sess.close()
+`
+![tf-result](/img/tf-result.png)
