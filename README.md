@@ -5,15 +5,15 @@ Some issues, there're some calculation that doesnt work well in terms of the def
 2. using some wrap library to handle this.
 
 e.g.
-`
+```python
 import numpy as np
 
 a = np.arange(6)
 a = (a + 100) * a
-`
+```
 
 will be translated into
-`
+```python
 import tensorflow as tf
 a = tf.range(6)
 a = ((a + 100) * a)
@@ -24,5 +24,6 @@ sess.run(tf.global_variables_initializer())
 sess.run(a)
 writer = tf.summary.FileWriter(logDir, sess.graph)
 sess.close()
-`
-![tf-result](/img/tf-result.png)
+```
+
+![tf-result](img/tf-result.png)
