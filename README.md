@@ -26,4 +26,4 @@ writer = tf.summary.FileWriter(logDir, sess.graph)
 sess.close()
 ```
 
-![tf-result](img/tf-result.png)
+![tf-result](img/tf-result.png?raw=true)
