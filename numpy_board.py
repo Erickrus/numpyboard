@@ -43,7 +43,7 @@ if __name__ == "__main__":
         """import numpy as np""",
         "",
         """a = np.arange(6)""",
-        """b = a.reshape(2,3*25)""",
+        """a = a.reshape(2,3*1)""",
         """a = (a + 100) * a"""
     ])
 

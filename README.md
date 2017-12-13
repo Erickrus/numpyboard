@@ -9,7 +9,7 @@ e.g.
 import numpy as np
 
 a = np.arange(6)
-b = a.reshape(2,3*25)
+a = a.reshape(2,3*1)
 a = (a + 100) * a
 ```
 
@@ -17,7 +17,7 @@ will be translated into
 ```python
 import tensorflow as tf
 a = tf.range(6)
-b = tf.reshape(a, [2, (3 * 25)])
+b = tf.reshape(a, [2, (3 * 1)])
 a = ((a + 100) * a)
 
 logDir = "/home/eric/test" 
