@@ -3,15 +3,15 @@ The idea is simply convert a numpy calculation to a tensorflow calculation, in t
 Some issues, there're some calculation that doesnt work well in terms of the definition of 2 heterogeneous libraries. 2 tricky ways are applied to translate the codes.
 
 - 1 simply replace the function name to equivalent functions, these replacements could be defined based on rules.
- - rename function (defined in Numpy)
+ - 1.1 rename function (defined in Numpy)
 ```python
 # in NumpyScriptVisitor.__init__()
-"arange": "range"
+{"arange": "range"}
 ```
- - reconstruct function and parameters
+ - 1.2 reconstruct function and parameters
 ```python
 # in NumpyScriptVisitor.__init__()
-'#1'.reshape('#2','#3')": "tf.reshape('#1',['#2','#3'])
+{"'#1'.reshape('#2','#3')": "tf.reshape('#1',['#2','#3'])"}
 ```
 - 2 using some wrap library to handle the translation (This is still to be worked out)
 
