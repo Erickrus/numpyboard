@@ -1,3 +1,16 @@
+####################################################################
+# Script    : NumpyScriptVisitor
+# PURPOSE   : Numpy script translator
+#             Somehow could be used as generic syntax replacement tool
+#
+# CREATED:    2017-12-12    Eric Hu (hyinghao@hotmail.com)
+#
+#
+# MODIFIED 
+# DATE        AUTHOR            DESCRIPTION
+# -------------------------------------------------------------------
+# 
+#####################################################################
 import re
 import ast, _ast, astunparse
 
@@ -5,44 +18,47 @@ import ast, _ast, astunparse
 class NumpyScriptVisitor(ast.NodeTransformer):
     
     def __init__(self):
+        # override NodeTransformer's original init function
         super(NumpyScriptVisitor, self).__init__()
-        self.replPair = {}
-        self.semanticPatterns = {
+        self.replaceSnippet = {}
+        self.reconstructSyntax = {
             "'#1'.reshape('#2','#3')": "tf.reshape('#1',['#2','#3'])"
-        }        
+        }
+        self.reconstructFieldPattern = r"'#[0-9]+'"
+        self.reconstructFuncPattern = r"[.][^(]*"
+        self.funcSubstituteDict = {
+            "arange": "range"
+        }
         
     def print_node(self, node):
+        # print the node
         print(astunparse.unparse(node).strip())
         
-    def func_substitution(self, node):
-        """substitute function with corresponding new function name"""
-        funcSubDict = {"arange": "range"}
+    def func_substitute(self, node):
+        # substitute function with corresponding new function name
         if type(node) == ast.Call:
-            for funcName in funcSubDict.keys():
+            for funcName in self.funcSubstituteDict.keys():
                 if (node.func.attr == funcName):
-                    node.func.attr = funcSubDict[funcName]
+                    node.func.attr = self.funcSubstituteDict[funcName]
 
-                
     def modify_import(self, node):
+        # modify the imports by replacing the import statement
         if type(node) == ast.alias and node.name=="numpy":
             if not node.asname is None:
                 node.asname = "tf"
                 node.name = "tensorflow"
     
-    def modify_numpy_asnames(self, node):
+    def modify_asnames(self, node):
+        # modify prefix of np
         if type(node) == ast.Name:
             if node.id == "np" and type(node.ctx) == ast.Load:
                 node.id = "tf"
-    
-    def obj_type(self, node):
-        if isinstance(node, ast.AST):
-            result = str(node)
-            result = result[6:result.find(" ")].strip()
-            return result
-        return None
 
     def seek_param(self, node, paramName):
+        # seek for given param by traversing the node tree
         result = []
+        # initially, just pass empty path and empty result
+        # result will be changed during the process, if any param is found
         self._seek_param(node, paramName, "", result)
         if (len(result)>0):
             return result[0]
@@ -50,70 +66,76 @@ class NumpyScriptVisitor(ast.NodeTransformer):
             return None
 
     def _seek_param(self, node, paramName, path, result):
-        #print(path)
+        # Recursive function defined to seek param
+        # This function is defined based on generic_visit()
+        # Basically, the idea is inspired by xpath
+        # Path is designed to refer to the relative position in the tree
         for field, value in ast.iter_fields(node):
+            # for list items
             if isinstance(value, list):
-                id = 0
+                idx = 0
                 for item in value:
                     if isinstance(item, ast.AST):
-                        self._seek_param(item, paramName, (path+"."+str(field)+"["+str(id)+"]"), result)
+                        self._seek_param(item, paramName, (path+"."+str(field)+"["+str(idx)+"]"), result)
                     else:
-                        if (type(item) == paramName):
-                            result.append(path+"."+field+"["+str(id)+"]")
-                    id += 1
+                        if (item == paramName):
+                            # usually this will not be accessed
+                            result.append(path+"."+field+"["+str(idx)+"]")
+                    idx += 1
+            # for normal items
             elif isinstance(value, ast.AST):
                 self._seek_param(value, paramName, path+"."+field, result)
+            # for the leaf nodes
             else:
                 if (value == paramName):
                     result.append(path)
     
     
-    def func_find_reconstruction_fields(self, scriptSlice):
-        result = re.findall( r"'#[0-9]+'", scriptSlice)
+    def _find_reconstruct_fields(self, codeSnippet):
+        # find all patterns for reconstruct fields, and replace additional quotes
+        result = re.findall( self.reconstructFieldPattern, codeSnippet)
         result = list(set(result))
         result = [item.replace("'","") for item in result]
         return result
         
-    def func_reconstruction(self, node):
+    def func_reconstruct(self, node):
+        # reconstruct node structure based on the given reconstruct syntax
         if type(node) == ast.Call:
-            for key in self.semanticPatterns.keys():
-                fromPattern = key
-                toPattern = self.semanticPatterns[key]
-                
-                funcName = re.findall( r"[.][^(]*", fromPattern)[0][1:]
-    
-                fromAst = ast.parse(fromPattern)
-                toAst = ast.parse(toPattern)
-                
+            for key in self.reconstructSyntax.keys():
+                sourcePattern = key
+                targetPattern = self.reconstructSyntax[key]
+                # scanning for the function name in the pattern
+                funcName = re.findall( self.reconstructFuncPattern, sourcePattern)[0][1:]
+                sourceAst = ast.parse(sourcePattern)
+                targetAst = ast.parse(targetPattern)
                 
                 if (node.func.attr == funcName):
-                    params = self.func_find_reconstruction_fields(fromPattern)
+                    params = self._find_reconstruct_fields(sourcePattern)
                     
                     for param in params:
-                        fromPath = "node" +self.seek_param(fromAst, param)[14:]
-                        toPath = "toAst"+self.seek_param(toAst, param)                    
-                        exec("%s=%s" % (toPath, fromPath))
+                        sourcePath = "node" +self.seek_param(sourceAst, param)[14:]
+                        targetPath = "targetAst"+self.seek_param(targetAst, param)
+                        # assign the node's corresponding sub-node to the target node
+                        # and this will generate a template for later replacement
+                        exec("%s=%s" % (targetPath, sourcePath))
                     
                     
                     
-                    asIs = astunparse.unparse(node).strip()
-                    # self.print_node(node)
-                    node = toAst.body[0].value
-                    toBe = astunparse.unparse(node).strip()
-                    # self.print_node(node)
+                    oldSnippet = astunparse.unparse(node).strip()
+                    # make sure the function part of the target is on it's body[0]
+                    # this is somehow hard-coded
+                    node = targetAst.body[0].value
+                    newSnippet = astunparse.unparse(node).strip()
                     
                     # store these pairs for future replacement
-                    self.replPair[asIs] = toBe
+                    self.replaceSnippet[oldSnippet] = newSnippet
             
-                
-    
     def generic_visit(self, node):
+        # override the original generic_visit function
         self.modify_import(node)
-        self.modify_numpy_asnames(node)
-        self.func_substitution(node)
-        self.func_reconstruction(node)
-        
-        # print(node)
+        self.modify_asnames(node)
+        self.func_substitute(node)
+        self.func_reconstruct(node)
             
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
@@ -122,12 +144,6 @@ class NumpyScriptVisitor(ast.NodeTransformer):
                         self.visit(item)
             elif isinstance(value, ast.AST):
                 self.visit(value)
-
-if __name__ == "__main__":
-    import re
-    a = "'#1'.reshape('#2','#3')"
-    m = re.findall( r"[.][^(]*", a)
-    print(m)
 
 
 
