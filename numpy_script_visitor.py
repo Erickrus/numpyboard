@@ -14,6 +14,8 @@
 import re
 import ast, _ast, astunparse
 
+from syntax_mapping import SyntaxMapping
+
 
 class NumpyScriptVisitor(ast.NodeTransformer):
     
@@ -21,14 +23,8 @@ class NumpyScriptVisitor(ast.NodeTransformer):
         # override NodeTransformer's original init function
         super(NumpyScriptVisitor, self).__init__()
         self.replaceSnippet = {}
-        self.reconstructSyntax = {
-            "'#1'.reshape('#2','#3')": "tf.reshape('#1',['#2','#3'])"
-        }
-        self.reconstructFieldPattern = r"'#[0-9]+'"
-        self.reconstructFuncPattern = r"[.][^(]*"
-        self.funcSubstituteDict = {
-            "arange": "range"
-        }
+        self.syntaxMapping = SyntaxMapping()
+
         
     def print_node(self, node):
         # print the node
@@ -37,9 +33,9 @@ class NumpyScriptVisitor(ast.NodeTransformer):
     def func_substitute(self, node):
         # substitute function with corresponding new function name
         if type(node) == ast.Call:
-            for funcName in self.funcSubstituteDict.keys():
+            for funcName in self.syntaxMapping.funcSubstituteDict.keys():
                 if (node.func.attr == funcName):
-                    node.func.attr = self.funcSubstituteDict[funcName]
+                    node.func.attr = self.syntaxMapping.funcSubstituteDict[funcName]
 
     def modify_import(self, node):
         # modify the imports by replacing the import statement
@@ -93,7 +89,7 @@ class NumpyScriptVisitor(ast.NodeTransformer):
     
     def _find_reconstruct_fields(self, codeSnippet):
         # find all patterns for reconstruct fields, and replace additional quotes
-        result = re.findall( self.reconstructFieldPattern, codeSnippet)
+        result = re.findall( self.syntaxMapping.reconstructFieldPattern, codeSnippet)
         result = list(set(result))
         result = [item.replace("'","") for item in result]
         return result
@@ -101,11 +97,11 @@ class NumpyScriptVisitor(ast.NodeTransformer):
     def func_reconstruct(self, node):
         # reconstruct node structure based on the given reconstruct syntax
         if type(node) == ast.Call:
-            for key in self.reconstructSyntax.keys():
+            for key in self.syntaxMapping.reconstructSyntax.keys():
                 sourcePattern = key
-                targetPattern = self.reconstructSyntax[key]
+                targetPattern = self.syntaxMapping.reconstructSyntax[key]
                 # scanning for the function name in the pattern
-                funcName = re.findall( self.reconstructFuncPattern, sourcePattern)[0][1:]
+                funcName = re.findall( self.syntaxMapping.reconstructFuncPattern, sourcePattern)[0][1:]
                 sourceAst = ast.parse(sourcePattern)
                 targetAst = ast.parse(targetPattern)
                 

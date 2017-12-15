@@ -5,12 +5,12 @@ Some issues, there're some calculation that doesnt work well in terms of the def
 - 1 simply replace the function name to equivalent functions, these replacements could be defined based on rules.
  - 1.1 rename function (defined in Numpy)
 ```python
-# in NumpyScriptVisitor.__init__()
+# in SyntaxMapping.__init__()
 {"arange": "range"}
 ```
  - 1.2 reconstruct function and parameters
 ```python
-# in NumpyScriptVisitor.__init__()
+# in SyntaxMapping.__init__()
 {"'#1'.reshape('#2','#3')": "tf.reshape('#1',['#2','#3'])"}
 ```
 - 2 using some wrap library to handle the translation (This is still to be worked out)
