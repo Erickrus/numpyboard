@@ -54,6 +54,8 @@ class NumpyBoard:
     def run_tfgraph(self, numpyScript):
         tfScript = self._translate(numpyScript)
         print(tfScript)
+        import sys
+        sys.exit(1)
         filename = "/tmp/%s.py" % str(self._get_js_timestamp())
         self._save_file(filename, tfScript)
         os.system("cd /tmp && python3 %s" % filename)
