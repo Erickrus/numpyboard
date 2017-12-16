@@ -42,7 +42,8 @@ the image generated:
 
 ![tb-result](img/tb-result.png?raw=true)
 
-Following images shows how it works during the syntax mapping phase.
+Following image shows how it works during the syntax mapping phase.
 
 ![translate](img/translate.png?raw=true)
+
 For some reasons, it only supports ubuntu(linux). e.g. removing folder and launch the tensorboard functions are implemented with os.system(...) linux commands.
