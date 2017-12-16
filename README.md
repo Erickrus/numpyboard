@@ -28,7 +28,7 @@ will be translated into:
 ```python
 import tensorflow as tf
 a = tf.range(6)
-b = tf.reshape(a, [2, (3 * 1)])
+a = tf.reshape(a, [2, (3 * 1)])
 a = ((a + 100) * a)
 
 logDir = "/home/eric/test" 
@@ -41,3 +41,5 @@ sess.close()
 the image generated:
 
 ![tb-result](img/tb-result.png?raw=true)
+
+For some reasons, it only supports ubuntu(linux). e.g. removing folder and launch the tensorboard functions are implemented with os.system(...) linux commands.
