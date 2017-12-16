@@ -87,11 +87,12 @@ class NumpyScriptVisitor(ast.NodeTransformer):
                     result.append(path)
     
     
-    def _find_reconstruct_fields(self, codeSnippet):
+    def _find_reconstruct_fields(self, node):
         # find all patterns for reconstruct fields, and replace additional quotes
-        result = re.findall( self.syntaxMapping.reconstructFieldPattern, codeSnippet)
-        result = list(set(result))
-        result = [item.replace("'","") for item in result]
+        result=[]
+        for i in ast.walk(node):
+            if hasattr(i,'id'):
+                result.append(i.id)
         return result
         
     def func_reconstruct(self, node):
@@ -109,7 +110,7 @@ class NumpyScriptVisitor(ast.NodeTransformer):
                 targetAst = ast.parse(targetPattern)
                 
                 if (nodeFuncSignature == self.syntaxMapping.reconstructFuncSignature[keyIndex]):
-                    params = self._find_reconstruct_fields(sourcePattern)
+                    params = self._find_reconstruct_fields(sourceAst)
                     
                     for para_index,param in enumerate(params):
                         sourcePath = "node" +self.seek_param(sourceAst, param)[14:]
@@ -125,10 +126,11 @@ class NumpyScriptVisitor(ast.NodeTransformer):
                     # this is somehow hard-coded
                     node = targetAst.body[0].value
                     newSnippet = astunparse.unparse(node).strip()
-                    print '#'*10
-                    print oldSnippet
-                    print newSnippet
-                    print '#'*10
+
+                    #print ('#'*10)
+                    #print (oldSnippet)
+                    #print (newSnippet)
+                    #print ('#'*10)
                     
                     # store these pairs for future replacement
                     self.replaceSnippet[oldSnippet] = newSnippet

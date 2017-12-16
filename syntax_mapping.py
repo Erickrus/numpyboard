@@ -17,8 +17,8 @@ import utils
 class SyntaxMapping:
     def __init__(self):
         self.reconstructSyntax = {
-            "'#1'.reshape('#2','#3')":
-            "tf.reshape('#1',['#2','#3'])"
+            "a.reshape(b,c)":
+            "tf.reshape(a,[b,c])"
         }
         self.funcSubstituteDict = {
             "arange": "range"
@@ -34,4 +34,7 @@ class SyntaxMapping:
 
 if __name__=='__main__':
     sm=SyntaxMapping()
-    print sm.reconstructFuncSignature
+    print (sm.reconstructFuncSignature)
+    print (utils.getFunctionSignature(ast.parse(sm.reconstructSyntax.items()[0][0]).body[0].value))
+    print (utils.getFunctionSignature(ast.parse(sm.reconstructSyntax.items()[0][1]).body[0].value))
+    print (utils.getFunctionSignature(ast.parse("a.reshape(2,3*1)").body[0].value))
