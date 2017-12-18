@@ -10,7 +10,7 @@ if __name__ == "__main__":
         """a = (a + 100) * a"""
     ])
 
-    nb = NumpyBoard("/home/eric/test", "a")
+    nb = NumpyBoard("/home/haijun/tmp/tmp/log", "a")
     
     print(npSnippet)
     print("------------")

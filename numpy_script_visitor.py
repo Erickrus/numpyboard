@@ -15,7 +15,7 @@ import re
 import ast, _ast, astunparse
 
 from syntax_mapping import SyntaxMapping
-
+import utils
 
 class NumpyScriptVisitor(ast.NodeTransformer):
     
@@ -87,28 +87,32 @@ class NumpyScriptVisitor(ast.NodeTransformer):
                     result.append(path)
     
     
-    def _find_reconstruct_fields(self, codeSnippet):
+    def _find_reconstruct_fields(self, node):
         # find all patterns for reconstruct fields, and replace additional quotes
-        result = re.findall( self.syntaxMapping.reconstructFieldPattern, codeSnippet)
-        result = list(set(result))
-        result = [item.replace("'","") for item in result]
+        result=[]
+        for i in ast.walk(node):
+            if hasattr(i,'id'):
+                result.append(i.id)
         return result
         
     def func_reconstruct(self, node):
+        
         # reconstruct node structure based on the given reconstruct syntax
         if type(node) == ast.Call:
-            for key in self.syntaxMapping.reconstructSyntax.keys():
+            #get the signature of this function node
+            nodeFuncSignature=utils.getFunctionSignature(node)
+            for keyIndex,key in enumerate(self.syntaxMapping.reconstructSyntax.keys()):
                 sourcePattern = key
                 targetPattern = self.syntaxMapping.reconstructSyntax[key]
                 # scanning for the function name in the pattern
-                funcName = re.findall( self.syntaxMapping.reconstructFuncPattern, sourcePattern)[0][1:]
+                
                 sourceAst = ast.parse(sourcePattern)
                 targetAst = ast.parse(targetPattern)
                 
-                if (node.func.attr == funcName):
-                    params = self._find_reconstruct_fields(sourcePattern)
+                if (nodeFuncSignature == self.syntaxMapping.reconstructFuncSignature[keyIndex]):
+                    params = self._find_reconstruct_fields(sourceAst)
                     
-                    for param in params:
+                    for para_index,param in enumerate(params):
                         sourcePath = "node" +self.seek_param(sourceAst, param)[14:]
                         targetPath = "targetAst"+self.seek_param(targetAst, param)
                         # assign the node's corresponding sub-node to the target node
@@ -122,6 +126,11 @@ class NumpyScriptVisitor(ast.NodeTransformer):
                     # this is somehow hard-coded
                     node = targetAst.body[0].value
                     newSnippet = astunparse.unparse(node).strip()
+
+                    #print ('#'*10)
+                    #print (oldSnippet)
+                    #print (newSnippet)
+                    #print ('#'*10)
                     
                     # store these pairs for future replacement
                     self.replaceSnippet[oldSnippet] = newSnippet
