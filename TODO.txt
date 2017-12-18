@@ -1,0 +1,3 @@
+1. Currently, the reconstruction of function is based on string ast node move and then the substitution. There might be some occations that requires multiple pass of reconstruction in a single line of code, which may lead to errors. So, need change the string substitution in the final step to AST unparse step.
+
+2. Chained function calls (np.arange(6).reshape(2,3)....  ) are not well supported, that is to say: .attr is not handled and will be lost during the reconstruction. 
